@@ -1,4 +1,5 @@
 ﻿using System;
+using JetBrains.Annotations;
 
 [Serializable]
 public class FieldDefinition
@@ -7,7 +8,8 @@ public class FieldDefinition
     public FieldType Type;
     public string Name;
     public int? Length; // For strings and arrays
-    public string TypeName; // For structures (optional)
+    [CanBeNull] public string TypeName; // For structures (optional)
+    [CanBeNull] public string ItemCountField;
 }
 
 public enum FieldType

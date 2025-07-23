@@ -27,7 +27,6 @@ public class GameFlowManager : MonoBehaviour
     private void RegisterEventListeners()
     {
         GameEvents.OnConnectionInfoReceived += OnConnectionInfoReceived;
-        GameEvents.OnGameServerEntered += OnGameServerEntered;
     }
 
     private async void OnConnectionInfoReceived(GameServerInfo info)
@@ -36,12 +35,5 @@ public class GameFlowManager : MonoBehaviour
         await NetworkConnection.Instance.ConnectToServer(info.IpAddress, info.Port);
         await LoadingScreen.Instance.ShowStep("Aguardando resposta do servidor...");
         // Agora aguardamos o "Hello" do servidor, que deve acionar o próximo evento.
-    }
-
-    private async void OnGameServerEntered()
-    {
-        await LoadingScreen.Instance.ShowStep("Servidor pronto. Preparando login...");
-        await Task.Delay(500); // só pra simular um carregamento suave
-        GameEvents.OnGameServerEntered?.Invoke();
     }
 }

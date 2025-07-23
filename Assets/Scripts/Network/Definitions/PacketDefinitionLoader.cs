@@ -70,8 +70,27 @@ public static class PacketDefinitionLoader
                     Type = TryMapFieldType(f.Element(ns + "Type")?.Value, out var ft)
                         ? ft
                         : throw new Exception($"Tipo inválido: {f.Element(ns + "Type")?.Value}"),
-                    Length = int.TryParse(f.Element(ns + "Length")?.Value, out var flen) ? flen : (int?)null
-                }).ToList()
+                    Length = int.TryParse(f.Element(ns + "Length")?.Value, out var flen) ? flen : (int?)null,
+                    TypeName = f.Element(ns + "TypeName")?.Value,
+                    ItemCountField = f.Element(ns + "ItemCountField")?.Value,
+                }).ToList(),
+                Structures = element.Element(ns + "Structures")?.Elements(ns + "Structure").Select(f =>
+                    new StructureDefinition
+                    {
+                        Name = f.Element(ns + "Name")?.Value,
+                        Length = int.TryParse(f.Element(ns + "Length")?.Value, out var len2) ? len2 : (int?)null,
+                        Fields = f.Element(ns + "Fields")?.Elements(ns + "Field").Select(f2 => new FieldDefinition
+                        {
+                            Index = int.Parse(f2.Element(ns + "Index")?.Value ?? "0"),
+                            Name = f2.Element(ns + "Name")?.Value,
+                            Type = TryMapFieldType(f2.Element(ns + "Type")?.Value, out var ft)
+                                ? ft
+                                : throw new Exception($"Tipo inválido: {f2.Element(ns + "Type")?.Value}"),
+                            Length = int.TryParse(f2.Element(ns + "Length")?.Value, out var flen3) ? flen3 : (int?)null,
+                            TypeName = f2.Element(ns + "TypeName")?.Value,
+                            ItemCountField = f.Element(ns + "ItemCountField")?.Value,
+                        }).ToList(),
+                    }).ToList(),
             };
 
             definitions[(code, subCode)] = definition;

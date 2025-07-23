@@ -172,6 +172,12 @@ public class NetworkConnection : MonoBehaviour
         Debug.Log($"[Server -> Client] {hex.ToString().Trim()}");
     }
 
+    public void QuitGame()
+    {
+        OnApplicationQuit();
+        Application.Quit();
+    }
+
     //
     private void OnApplicationQuit()
     {

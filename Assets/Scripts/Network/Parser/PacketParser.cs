@@ -75,6 +75,6 @@ public class PacketParser
 
     private bool HasSubCode(byte code)
     {
-        return code == 0xF1 || code == 0x00 || code == 0xF4;
+        return code == 0xF1 || code == 0x00 || code == 0xF4 || code == 0xF3;
     }
 }
