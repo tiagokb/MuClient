@@ -36,7 +36,7 @@ public class ServerSelectionController : MonoBehaviour
     private void OnSelectServer(ServerInfo server)
     {
         Debug.Log($"[ServerSelectionController] Servidor selecionado: {server.Id}");
-        PacketSender.SendAsync(new SelectServer(server.Id));
+        PacketSender.Send(new SelectServer(server.Id));
         LoginScreenUIRoot.Instance.HideUI();
     }
 }

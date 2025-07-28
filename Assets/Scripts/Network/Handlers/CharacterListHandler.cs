@@ -10,8 +10,32 @@ public class CharacterListHandler : IPacketHandler
     public void Handle(ParsedPacket packet)
     {
         var packetDictionary = packet.Decode(PacketDefinitionsRegistry.PacketType.ServerToClient);
-
         Debug.Log($"CharacterList received: {FormatPacketDictionary(packetDictionary)}");
+
+        var charactersRaw = (List<Dictionary<string, object>>)packetDictionary["Characters"];
+
+        if (CharacterSceneState.Instance.CharacterList.Count > 0)
+        {
+            CharacterSceneState.Instance.CharacterList.Clear();
+        }
+
+        foreach (var entry in charactersRaw)
+        {
+            var character = new CharacterList
+            {
+                SlotIndex = Convert.ToInt32(entry["SlotIndex"]),
+                Name = entry["Name"].ToString(),
+                Level = Convert.ToUInt32(entry["Level"]),
+                Status = (CharacterStatus)Convert.ToByte(entry["Status"]),
+                IsItemBlockActive = Convert.ToBoolean(entry["IsItemBlockActive"]),
+                Appearance = (byte[])entry["Appearance"],
+                GuildPosition = (GuildMemberRole)Convert.ToByte(entry["GuildPosition"])
+            };
+
+            CharacterSceneState.Instance.CharacterList[character.Name] = character;
+        }
+
+        GameEvents.OnCharacterListLoaded?.Invoke();
     }
 
     public static string FormatPacketDictionary(object obj, int indentLevel = 0)

@@ -31,7 +31,12 @@ public class LoadingScreen : MonoBehaviour
         messageText.text = message;
         if (progress >= 0)
         {
+            progressBar.gameObject.SetActive(true);
             progressBar.value = progress;
+        }
+        else
+        {
+            progressBar.gameObject.SetActive(false);
         }
 
         await Task.Delay(10);

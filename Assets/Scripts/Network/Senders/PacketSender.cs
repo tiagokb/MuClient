@@ -1,13 +1,21 @@
 ﻿using System;
+using System.Threading.Tasks;
 using UnityEngine;
 
 public static class PacketSender
 {
-    public static async void SendAsync(IPacketBuilder builder)
+    public static void Send(IPacketBuilder builder)
     {
         byte[] packet = builder.Build();
+        NetworkConnection.Instance.EnqueueSend(packet);
+    }
 
-        Debug.Log($"[SendAsync] Enviando pacote para o servidor: {BitConverter.ToString(packet)}");
-        await NetworkConnection.Instance.SendAsync(packet);
+    public static void SendAsync(IAsyncPacketBuilder builder)
+    {
+        Task.Run(async () =>
+        {
+            var packet = await builder.BuildeAsync().ConfigureAwait(false);
+            NetworkConnection.Instance.EnqueueSend(packet);
+        });
     }
 }

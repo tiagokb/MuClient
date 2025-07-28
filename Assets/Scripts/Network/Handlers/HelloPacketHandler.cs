@@ -9,6 +9,6 @@ public class HelloPacketHandler : IPacketHandler
     {
         Debug.Log("[HelloPacketHandler] Servidor disse 'Olá'. Vamos pedir a lista de servidores!");
         // aqui depois a gente chama o sender pra mandar o próximo pacote
-        PacketSender.SendAsync(new RequestServerList());
+        PacketSender.Send(new RequestServerList());
     }
 }

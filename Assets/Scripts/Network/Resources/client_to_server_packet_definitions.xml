@@ -2093,7 +2093,7 @@
           <Type>String</Type>
           <Name>Name</Name>
           <Description>The name of the character which should be deleted.</Description>
-          <Length>10</Length>
+<!--          <Length>10</Length>-->
         </Field>
         <Field>
           <Index>14</Index>

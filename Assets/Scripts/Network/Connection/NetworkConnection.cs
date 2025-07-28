@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
@@ -14,6 +15,11 @@ public class NetworkConnection : MonoBehaviour
 
     [SerializeField] private string serverIp = "127.127.127.127";
     [SerializeField] private int serverPort = 44406;
+
+    private ConcurrentQueue<byte[]> _receivedPackets = new();
+
+    private readonly ConcurrentQueue<byte[]> _sendQueue = new();
+    private CancellationTokenSource _sendTokenSource;
 
     private TcpClient _client;
     private NetworkStream _stream;
@@ -44,6 +50,7 @@ public class NetworkConnection : MonoBehaviour
         PacketDefinitionsRegistry.Instance.Load();
 
         await LoadingScreen.Instance.ShowStep("Conectando ao Servidor...");
+
 
         await ConnectToServer(serverIp, serverPort);
 
@@ -99,6 +106,8 @@ public class NetworkConnection : MonoBehaviour
 
         _listenTokenSource = new CancellationTokenSource();
         _ = ListenToServer(_listenTokenSource.Token);
+        StartProcessingPackets();
+        StartSendingLoop();
     }
 
     public async Task ListenToServer(CancellationToken token)
@@ -114,9 +123,7 @@ public class NetworkConnection : MonoBehaviour
                 byte[] packet = new byte[bytesRead];
                 Array.Copy(buffer, 0, packet, 0, bytesRead);
 
-                LogPacket(packet);
-                var parsed = _parser.Parse(packet);
-                _router.Route(parsed);
+                _receivedPackets.Enqueue(packet);
             }
         }
         catch (OperationCanceledException)
@@ -125,25 +132,69 @@ public class NetworkConnection : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogError($"[NetworkConnection] Erro na leitura: {e.Message}");
+            Debug.LogError($"[NetworkConnection] Erro na leitura: {e.Message}, {e.StackTrace}");
         }
     }
 
-
-    public async Task SendAsync(byte[] data)
+    public void StartProcessingPackets()
     {
-        if (_isConnected && _stream != null)
+        Task.Run(async () =>
         {
-            try
+            while (_isConnected)
             {
-                await _stream.WriteAsync(data, 0, data.Length);
-                Debug.Log($"[NetworkConnection] Pacote Enviada: {data.Length} bytes");
+                if (_receivedPackets.TryDequeue(out var packet))
+                {
+                    try
+                    {
+                        LogPacket(packet);
+                        var parsed = _parser.Parse(packet);
+                        MainThreadDispatcher.Enqueue(() => { _router.Route(parsed); });
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"Erro ao processar pacote: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    await Task.Delay(_receivedPackets.IsEmpty ? 1 : 0);
+                }
             }
-            catch (Exception e)
+        });
+    }
+
+    private void StartSendingLoop()
+    {
+        _sendTokenSource = new CancellationTokenSource();
+        var token = _sendTokenSource.Token;
+
+        Task.Run(async () =>
+        {
+            while (_isConnected && !token.IsCancellationRequested)
             {
-                Debug.LogError($"[NetworkConnection] Erro ao enviar dados: {e.Message}");
+                if (_sendQueue.TryDequeue(out var packet))
+                {
+                    try
+                    {
+                        await _stream.WriteAsync(packet, 0, packet.Length, token);
+                        Debug.Log($"[NetworkConnection] Pacote enviado: {packet.Length} bytes");
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"[NetworkConnection] Erro ao enviar pacote: {e.Message}");
+                    }
+                }
+                else
+                {
+                    await Task.Delay(_sendQueue.IsEmpty ? 1 : 0);
+                }
             }
-        }
+        });
+    }
+
+    public void EnqueueSend(byte[] data)
+    {
+        _sendQueue.Enqueue(data);
     }
 
     public async Task DisconnectAsync()
@@ -181,13 +232,23 @@ public class NetworkConnection : MonoBehaviour
     //
     private void OnApplicationQuit()
     {
-        _listenTokenSource?.Cancel(); // <--- isso garante o cancelamento limpo
         _isConnected = false;
+        _listenTokenSource?.Cancel(); // <--- isso garante o cancelamento limpo
+        _sendTokenSource?.Cancel();
+
         _stream?.Close();
         _stream?.Dispose();
 
         _client?.Close();
         _client?.Dispose();
+
+        while (_receivedPackets.TryDequeue(out _))
+        {
+        }
+
+        while (_sendQueue.TryDequeue(out _))
+        {
+        }
 
         Debug.Log("[NetworkConnection] Desconectado com sucesso.");
     }

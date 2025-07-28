@@ -21,6 +21,6 @@ public class LoginForm : MonoBehaviour
         string username = usernameInput.text;
         string password = passwordInput.text;
 
-        PacketSender.SendAsync(new LoginFormPacketBuilder(username, password));
+        PacketSender.Send(new LoginFormPacketBuilder(username, password));
     }
 }
